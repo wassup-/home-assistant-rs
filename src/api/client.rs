@@ -18,31 +18,31 @@ impl Client {
 
     /// Returns `true` if the API is up and running, `false` otherwise.
     pub async fn get_status(&self) -> Result<entities::ApiStatus, ClientError> {
-        let resp = self.client.get("/api", ()).await?;
+        let resp = self.client.get("", ()).await?;
         Ok(resp)
     }
 
     /// Returns the current configuration.
     pub async fn get_config(&self) -> Result<entities::Config, ClientError> {
-        let resp = self.client.get("/api/config", ()).await?;
+        let resp = self.client.get("config", ()).await?;
         Ok(resp)
     }
 
     /// Returns an array of event objects.
     pub async fn get_events(&self) -> Result<entities::Events, ClientError> {
-        let resp = self.client.get("/api/events", ()).await?;
+        let resp = self.client.get("events", ()).await?;
         Ok(resp)
     }
 
     /// Returns an array of service objects.
     pub async fn get_services(&self) -> Result<entities::Services, ClientError> {
-        let resp = self.client.get("/api/services", ()).await?;
+        let resp = self.client.get("services", ()).await?;
         Ok(resp)
     }
 
     /// Returns an array of state objects.
     pub async fn get_states(&self) -> Result<entities::States, ClientError> {
-        let resp = self.client.get("/api/states", ()).await?;
+        let resp = self.client.get("states", ()).await?;
         Ok(resp)
     }
 
@@ -51,10 +51,7 @@ impl Client {
         &self,
         entity_id: &str,
     ) -> Result<entities::States, ClientError> {
-        let resp = self
-            .client
-            .get(&format!("/api/states/{entity_id}"), ())
-            .await?;
+        let resp = self.client.get(&format!("states/{entity_id}"), ()).await?;
         Ok(resp)
     }
 

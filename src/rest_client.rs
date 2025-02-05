@@ -1,12 +1,12 @@
 /// The REST client error type.
 #[derive(thiserror::Error, Debug)]
 #[error("REST client error: {0}")]
-pub struct RestClientError(#[from] reqwest::Error);
+pub struct RestClientError(String);
 
 /// A REST client.
 pub struct RestClient {
     client: reqwest::Client,
-    base_url: String,
+    base_url: Url,
 }
 
 impl RestClient {
@@ -14,7 +14,7 @@ impl RestClient {
     ///
     /// # Panics
     ///
-    /// This function panics if the token could not be parsed.
+    /// This function panics if either the base url or the token could not be parsed.
     pub fn new(base_url: &str, token: &str) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -25,10 +25,8 @@ impl RestClient {
             .default_headers(headers)
             .build()
             .unwrap();
-        RestClient {
-            client,
-            base_url: base_url.to_owned(),
-        }
+        let base_url = ::url::Url::parse(base_url).unwrap();
+        RestClient { client, base_url }
     }
 
     pub async fn get<T, Q>(&self, path: &str, query: Q) -> Result<T, RestClientError>
@@ -36,12 +34,8 @@ impl RestClient {
         T: DeserializeOwned,
         Q: Serialize,
     {
-        let resp = self
-            .client
-            .get(self.build_url(path))
-            .query(&query)
-            .send()
-            .await?;
+        let url = self.base_url.join(path)?;
+        let resp = self.client.get(url).query(&query).send().await?;
         let res = resp.json().await?;
         Ok(res)
     }
@@ -51,20 +45,25 @@ impl RestClient {
         T: DeserializeOwned,
         B: Serialize,
     {
-        let resp = self
-            .client
-            .post(self.build_url(path))
-            .json(&json)
-            .send()
-            .await?;
+        let url = self.base_url.join(path)?;
+        let resp = self.client.post(url).json(&json).send().await?;
         let res = resp.json().await?;
         Ok(res)
     }
+}
 
-    fn build_url(&self, path: &str) -> String {
-        format!("{}/{path}", self.base_url)
+impl From<url::ParseError> for RestClientError {
+    fn from(err: url::ParseError) -> Self {
+        RestClientError(err.to_string())
+    }
+}
+
+impl From<reqwest::Error> for RestClientError {
+    fn from(err: reqwest::Error) -> Self {
+        RestClientError(err.to_string())
     }
 }
 
 use reqwest::header::{self, HeaderMap};
 use serde::{de::DeserializeOwned, Serialize};
+use url::Url;
